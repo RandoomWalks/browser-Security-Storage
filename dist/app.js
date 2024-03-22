@@ -1,5 +1,5 @@
 // app.ts
-import { synchronizeLocalData } from "./sync";
+import { synchronizeLocalData, performIncrementalSync } from "./sync";
 import { populateStores, getItemsPublishedInRange, addUserAndBookConcurrently } from "./indexedDBUtils";
 import { DataFactories } from "./models";
 import { populateDbs } from './database';
@@ -17,11 +17,12 @@ export const main = async () => {
         console.log('Books published in March 2024:', booksInRange);
         synchronizeLocalData('itemsDB', 'users')
             .catch((error) => console.error('Failed to synchronize data:', error));
-        await populateDbs(DataFactories.getFactories(), 50);
-        // export const populateDbs = async <T extends { dbName: string; storeName: string; generate: () => any; }>(
-        //     generators: T[],
-        //     genCt: number
-        // ):
+        await populateDbs(DataFactories.getFactories(), 500);
+        // Assume lastSyncTimestamp is stored and retrieved from somewhere, like localStorage
+        const lastSyncTimestamp = Date.now() - 10000; // Example: 10 seconds ago
+        performIncrementalSync('itemsDB', 'books', lastSyncTimestamp)
+            .then(() => console.log('Incremental sync completed.'))
+            .catch((error) => console.error('Incremental sync failed:', error));
     }
     catch (error) {
         console.error('An error occurred:', error);
