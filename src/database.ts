@@ -1,7 +1,7 @@
 // database.ts
 
 // This file will contain the logic for opening and upgrading the IndexedDB database.
-import { getStores } from "./indexedDBUtils";
+import { getStores, batchOperation } from "./indexedDBUtils";
 import { DataFactories, Types } from "./models";
 import { addItems } from "./indexedDBUtils";
 
@@ -13,16 +13,30 @@ import { addItems } from "./indexedDBUtils";
  */
 export const populateDbs = async <T extends { dbName: string; storeName: string; generate: () => any; }>(
     generators: T[],
-    genCt: number
+    genCt: number,
+    batchSize: number = 100 // Define preferred batch size
 ): Promise<void> => {
-    // Loop genCt times
-    for (let i = 0; i < genCt; i++) {
-        // For each generator
-        for (let generator of generators) {
-            // Generate a new item
+    // For each generator
+    for (let generator of generators) {
+        let batch: any[] = []; // Temporary store for the current batch
+
+        // Loop genCt times
+        for (let i = 0; i < genCt; i++) {
+            // Generate a new item and add it to the batch
             const newItem = generator.generate();
-            // Add the new item to the database and store specified by the generator
-            await addItems(generator.dbName, generator.storeName, [newItem]);
+            batch.push(newItem);
+
+            // Once the batch size is reached or it's the last item, process the batch
+            if (batch.length === batchSize || i === genCt - 1) {
+                await batchOperation(
+                    generator.dbName,
+                    generator.storeName,
+                    batch,
+                    (store, item) => store.add(item) // Assuming batchOperation is for add operations
+                );
+
+                batch = []; // Reset the batch
+            }
         }
     }
 }

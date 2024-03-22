@@ -23,13 +23,13 @@ export const main = async (): Promise<void> => {
         synchronizeLocalData('itemsDB', 'users')
             .catch((error) => console.error('Failed to synchronize data:', error));
 
-        await populateDbs(DataFactories.getFactories(), 50);
+        await populateDbs(DataFactories.getFactories(), 500);
 
         // export const populateDbs = async <T extends { dbName: string; storeName: string; generate: () => any; }>(
         //     generators: T[],
         //     genCt: number
         // ):
-        
+
     } catch (error) {
         console.error('An error occurred:', error);
     }

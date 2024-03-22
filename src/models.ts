@@ -30,8 +30,6 @@ export namespace Types {
     }
 }
 
-
-
 export namespace DataFactories {
 
     function generateBook(): Types.Book {

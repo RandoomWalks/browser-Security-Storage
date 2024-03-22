@@ -15,7 +15,7 @@ export const storeExists = (storeName: string): boolean => {
     return existingStoresSet.has(storeName);
 };
 
-export const addItems = async <T>(dbName: string, storeName: string, items: T[]): Promise<void> => {
+export const addItems = async <T>(dbName: string, storeName: string, items: T[], bBatch: boolean = false): Promise<void> => {
     const db = await openDatabase(dbName);
     const tx = db.transaction(storeName, 'readwrite');
     const store = tx.objectStore(storeName);
@@ -27,6 +27,63 @@ export const addItems = async <T>(dbName: string, storeName: string, items: T[])
         tx.onerror = () => reject(tx.error);
     });
 };
+
+// ! Example: Adding Items in Batches
+// const books = [{ /* Book 1 */ }, { /* Book 2 */ }, /* etc. */];
+// await batchOperation<Book>(
+//   'BooksDB',
+//   'books',
+//   books,
+//   (store, item) => store.add(item), // Operation to perform
+//   50 // Batch size
+// );
+
+
+//  ! Suppose you have an array of IDs of the books you want to delete:
+// const bookIds = [1, 2, 3, 4, 5]; // IDs of books to delete
+// await batchOperation<number>(
+//   'BooksDB',
+//   'books',
+//   bookIds,
+//   (store, id) => store.delete(id), // Operation to perform
+//   50 // Batch size
+// );
+
+export async function batchOperation<T>(
+    dbName: string,
+    storeName: string,
+    items: T[],
+    operation: (store: IDBObjectStore, item: T) => IDBRequest,
+    batchSize: number = 100
+): Promise<void> {
+    const db = await openDatabase(dbName);
+    let transaction = db.transaction(storeName, 'readwrite');
+    let store = transaction.objectStore(storeName);
+    let count = 0;
+
+    return new Promise((resolve, reject) => {
+        items.forEach((item, index) => {
+            const request = operation(store, item);
+            request.onsuccess = () => {
+                count++;
+                if (count === items.length) {
+                    resolve();
+                }
+            };
+
+            if ((index + 1) % batchSize === 0 || index === items.length - 1) {
+                transaction.oncomplete = () => {
+                    if (index < items.length - 1) {
+                        transaction = db.transaction(storeName, 'readwrite');
+                        store = transaction.objectStore(storeName);
+                    }
+                };
+                transaction.onerror = () => reject(transaction.error);
+            }
+        });
+    });
+}
+
 
 export const addUserAndBookConcurrently = async (newUser: Types.User, newBook: Types.Book): Promise<void> => {
     const pCreateBook = addItems('itemsDB', 'books', [newBook]);
