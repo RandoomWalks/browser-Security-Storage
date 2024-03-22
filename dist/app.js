@@ -1,11 +1,13 @@
+// app.ts
 import { synchronizeLocalData } from "./sync";
 import { populateStores, getItemsPublishedInRange, addUserAndBookConcurrently } from "./indexedDBUtils";
-// import { addUserAndBookConcurrently } from "./sync"; // Ensure this is defined or adjusted appropriately
+import { DataFactories } from "./models";
+import { populateDbs } from './database';
 export const main = async () => {
     try {
         populateStores(['books', 'users']);
         const newUser = { name: 'Jane Doe', email: 'jane.doe@example.com', createdDate: new Date() };
-        const newBook = { title: 'To Kill a Mockingbird', author: 'Harper Lee', createdDate: new Date() };
+        const newBook = { name: 'To Kill a Mockingbird', author: 'Harper Lee', createdDate: new Date() };
         await addUserAndBookConcurrently(newUser, newBook);
         console.log('User and book added concurrently.');
         // Demonstrate getting items in a date range
@@ -15,6 +17,11 @@ export const main = async () => {
         console.log('Books published in March 2024:', booksInRange);
         synchronizeLocalData('itemsDB', 'users')
             .catch((error) => console.error('Failed to synchronize data:', error));
+        await populateDbs(DataFactories.getFactories(), 50);
+        // export const populateDbs = async <T extends { dbName: string; storeName: string; generate: () => any; }>(
+        //     generators: T[],
+        //     genCt: number
+        // ):
     }
     catch (error) {
         console.error('An error occurred:', error);

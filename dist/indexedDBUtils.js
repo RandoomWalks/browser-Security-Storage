@@ -45,3 +45,36 @@ export const getItemsPublishedInRange = async (dbName, storeName, startDate, end
         request.onerror = () => reject(request.error);
     });
 };
+export const searchItemsByName = async (title) => {
+    const db = await openDatabase('itemsDB');
+    const transaction = db.transaction(['users', 'books']);
+    const userStore = transaction.objectStore('users');
+    const booksStore = transaction.objectStore('books');
+    const userIndex = userStore.index('by_Name');
+    const bookIndex = booksStore.index('by_Name');
+    // Use a cursor to search for books/users by title. Adjust keyRange for specific search strategies (e.g., prefix search).
+    const keyRange = IDBKeyRange.bound(title, title + '\uffff');
+    const [users, books] = await Promise.all([
+        getAllFromIndex(userIndex, keyRange),
+        getAllFromIndex(bookIndex, keyRange)
+    ]);
+    return [...users, ...books];
+};
+// Utility function to read all records from an index that match the key range.
+const getAllFromIndex = async (index, keyRange) => {
+    const request = index.openCursor(keyRange);
+    const results = [];
+    return new Promise((resolve, reject) => {
+        request.onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+                results.push(cursor.value);
+                cursor.continue();
+            }
+            else {
+                resolve(results);
+            }
+        };
+        request.onerror = () => reject(request.error);
+    });
+};

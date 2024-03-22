@@ -1,10 +1,10 @@
 // sync.ts
-import { ServerResponse } from "./models";
+import { Types } from "./models";
 import { addItems } from "./indexedDBUtils";
 import { openDatabase } from "./database";
 
 // Mock function simulating sending data to a server
-export function syncDataWithServer<T>(data: T[]): Promise<ServerResponse> {
+export function syncDataWithServer<T>(data: T[]): Promise<Types.ServerResponse> {
     return new Promise((resolve) => {
         setTimeout(() => {
             console.log(`Data sent to server: ${JSON.stringify(data)}`);
